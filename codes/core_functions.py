@@ -1,5 +1,4 @@
 from statsmodels.sandbox.stats.multicomp import multipletests
-import rpy2.robjects as robjects
 import pandas as pd
 from collections import Counter
 import operator
@@ -8,13 +7,13 @@ import numpy as np
 import math
 import ipywidgets as widgets
 import os
-
+from scipy.stats import fisher_exact
 def dropdown():
     wd = widgets.Dropdown(
         options={'Gene Ontology: biological process': 'go_bp.gmt', 
                  'Gene Ontology: molecular function': 'go_mf.gmt', 
                  'Gene Ontology: cellular component': 'go_cc.gmt',
-                 'KEGG,Reactome & Biocarta: Curated_canonical_pathways_MSigDB.gmt',
+                 'KEGG,Reactome & Biocarta': 'Curated_canonical_pathways_MSigDB.gmt',
                  'MSigDB hallmarks':'hallmarks.gmt',
                  'MSigDB oncogenic signatures':'oncogenic_signatures.gmt',
                  'MSigDB transcription factor targets':'transcription_factors.gmt'},
@@ -92,18 +91,11 @@ def functional_enrichment(term_genes, N, k_l, alpha):
         m = len(term_genes[term])
         xl = list(set(term_genes[term]).intersection(set(k_l)))
         x = len(xl)
-
         if x != 0:
-            xlist = []
-            for i in range(x, m + 1):
-                xlist.append(i)
-
-            # calculation of the hypervalue
-            dhyper = robjects.r['dhyper']
-            xboh = robjects.IntVector(xlist)
-            dhypervalue = dhyper(xboh, m, (N - m), k, log=False)
-            # print(x,N,m,k,dhypervalue)
-            term_data.append({'TERM': term, 'PVALUE': sum(dhypervalue)})
+            interm = [x,m-x]
+            outterm = [k-x,N-m]
+            odds,pvalf = fisher_exact([interm,outterm])
+            term_data.append({'TERM': term, 'PVALUE': pvalf})
 
     term_data_df = pd.DataFrame(term_data)
 
