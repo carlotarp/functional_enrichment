@@ -6,9 +6,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import ipywidgets as widgets
+from ipywidgets import Layout
 import os
 from scipy.stats import fisher_exact
 def dropdown():
+    print('Select the database to perform the functional enrichment:')
     wd = widgets.Dropdown(
         options={'Gene Ontology: biological process': 'go_bp.gmt', 
                  'Gene Ontology: molecular function': 'go_mf.gmt', 
@@ -18,50 +20,60 @@ def dropdown():
                  'MSigDB oncogenic signatures':'oncogenic_signatures.gmt',
                  'MSigDB transcription factor targets':'transcription_factors.gmt'},
         value='go_bp.gmt',
-        description='Select the database to perform the functional enrichment:',
+        description='',
+        layout=Layout(width='100%', height='100%')
     )
     return wd
 
 def dropdown_gene_set(allenrichment_results):
+    print('Select a gene set to check the genes contained in it')
     wd = widgets.Dropdown(
         options = {gs:gs for gs in sorted(allenrichment_results.TERM.tolist())},
         value = sorted(allenrichment_results.TERM.tolist())[0],
-        description= 'Select a gene set to check the genes contained in it'
+        description= '',
+        layout=Layout(width='100%', height='100%')
     )
     return wd
 
 def filename_groups():
     d = {fnam:fnam for fnam in os.listdir('../data/') if os.path.isfile('../data/'+fnam) and fnam.startswith('.')==False}
     d['No_file'] = 'No_file'
+    print('Select the groups file')
     wd = widgets.Dropdown(
         options = d,
         value = 'No_file',
-        description= 'Select the groups file'
+        description= '',
+        layout=Layout(width='100%', height='100%')
     )
     return wd 
 
 def filename_GO():
     d = {fnam:fnam for fnam in os.listdir('../data/') if os.path.isfile('../data/'+fnam) and fnam.startswith('.')==False}
     d['No_file'] = 'No_file'
+    print('OPTIONAL - Select a file with list of gene sets to enrich (filter):')
     wd = widgets.Dropdown(
         options = d,
         value = 'No_file',
-        description= 'OPTIONAL Select a file with list of gene sets to enrich (filter):'
+        description= '',
+        layout=Layout(width='100%', height='100%')
     )
     return wd 
 
 def pval_thres():
+    print('Corrected P-value (Q-value) threshold:')
     fs = widgets.FloatSlider(
         value=0.05,
         min=0,
         max=0.5,
         step=0.05,
-        description='Corrected P-value (Q-value) threshold:',
+        description='',
         disabled=False,
         continuous_update=False,
         orientation='horizontal',
         readout=True,
         readout_format='.2f',
+        layout=Layout(width='50%', height='100%'),
+        position='right'
     )
     return fs
         
