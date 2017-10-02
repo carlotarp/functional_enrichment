@@ -43,7 +43,7 @@ def filename_GO():
     wd = widgets.Dropdown(
         options = d,
         value = 'No_file',
-        description= 'Select a file with list of gene sets to enrich:'
+        description= 'OPTIONAL Select a file with list of gene sets to enrich (filter):'
     )
     return wd 
 
