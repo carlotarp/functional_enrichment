@@ -12,8 +12,12 @@ import os
 def dropdown():
     wd = widgets.Dropdown(
         options={'Gene Ontology: biological process': 'go_bp.gmt', 
-                 'Gene Ontology: molecular function': 'GOmf', 
-                 'Gene Ontology: cellular component': 'GOcc'},
+                 'Gene Ontology: molecular function': 'go_mf.gmt', 
+                 'Gene Ontology: cellular component': 'go_cc.gmt',
+                 'KEGG,Reactome & Biocarta: Curated_canonical_pathways_MSigDB.gmt',
+                 'MSigDB hallmarks':'hallmarks.gmt',
+                 'MSigDB oncogenic signatures':'oncogenic_signatures.gmt',
+                 'MSigDB transcription factor targets':'transcription_factors.gmt'},
         value='go_bp.gmt',
         description='Select the database to perform the functional enrichment:',
     )
