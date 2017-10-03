@@ -59,23 +59,32 @@ def filename_GO():
     )
     return wd 
 
-def pval_thres():
-    print('Corrected P-value (Q-value) threshold:')
+def min_gene_intersected():
+    print('Minimum of genes intersecting gene set')
     fs = widgets.FloatSlider(
-        value=0.05,
+        value=0,
         min=0,
-        max=0.5,
-        step=0.05,
+        max=100,
+        step=5,
         description='',
         disabled=False,
         continuous_update=False,
         orientation='horizontal',
         readout=True,
-        readout_format='.2f',
+        readout_format='.0f',
         layout=Layout(width='50%', height='100%'),
         position='right'
     )
     return fs
+
+def pval_thres():
+    print('Corrected P-value (Q-value) threshold')
+    pv = widgets.FloatText(
+        value=0.05,
+        description='',
+        disabled=False
+    )
+    return pv
         
 def load_data(filename,db_name):
     #Load cluster data
@@ -95,7 +104,7 @@ def load_data(filename,db_name):
     allgenes = set(allgenes)
     return allgenes,genesets,cluster_genes,clusters
 
-def functional_enrichment(term_genes, N, k_l, alpha):
+def functional_enrichment(term_genes, N, k_l, alpha, xmin):
     functional_data = pd.DataFrame()
     k = len(k_l)
     term_data = []
@@ -103,11 +112,11 @@ def functional_enrichment(term_genes, N, k_l, alpha):
         m = len(term_genes[term])
         xl = list(set(term_genes[term]).intersection(set(k_l)))
         x = len(xl)
-        if x != 0:
+        if x >= xmin and x !=0:
             interm = [x,m-x]
             outterm = [k-x,N-m]
             odds,pvalf = fisher_exact([interm,outterm])
-            term_data.append({'TERM': term, 'PVALUE': pvalf})
+            term_data.append({'TERM': term, 'PVALUE': pvalf,'ENRICHED_GENES':','.join(xl),'TERM_GENE_SET_SIZE':m})
 
     term_data_df = pd.DataFrame(term_data)
 
@@ -119,22 +128,42 @@ def functional_enrichment(term_genes, N, k_l, alpha):
         return functional_data[functional_data['QVALUE'] < alpha]
     else:
         return ''
+        
+def generate_gitools_matrix(cluster_genes,fnam):
+    allclustergenes = []
+    cluster = []
+    for k,v in cluster_genes.items():
+        allclustergenes += v
+        cluster.append(k)
+    allclustergenes = list(set(allclustergenes))
+    fout = open('../results/'+fnam.split('.')[0]+'.bdm','w')
+    fout.writelines('GENE\t'+'\t'.join(cluster)+'\n')
+    for gene in allclustergenes:
+        fout.writelines(str(gene)+'\t')
+        vs = []
+        for c in cluster:
+            if gene in cluster_genes[c]:
+                vs.append('1')
+            else:
+                vs.append('0')
+        fout.writelines(('\t').join(vs)+'\n')
+    fout.close()
 
-def enrichment_all_groups(genesets,filt,allgenes,cluster_genes,Pvalue_thr):
-    if filt != 'No_file':
-        gos_sel = pd.read_excel('../data/'+filt,header=None,names=['TERM'])
-        term_genes = {k:v for k,v in genesets.items() if k in gos_sel['TERM'].tolist()}
-    else:
-        term_genes = genesets
 
-
+def enrichment_all_groups(genesets,xmin,filt,allgenes,cluster_genes,Pvalue_thr):
     allenrichment_results = pd.DataFrame()
     for cluster, cluster_genes_l in cluster_genes.items():
         print('Working on....',cluster)
-        enrichment_results = functional_enrichment(term_genes=term_genes, N=len(allgenes), k_l=cluster_genes_l, alpha=Pvalue_thr)
+        enrichment_results = functional_enrichment(term_genes=genesets, N=len(allgenes), k_l=cluster_genes_l, alpha=Pvalue_thr, xmin=xmin)
         enrichment_results['GROUP'] = cluster
         allenrichment_results = allenrichment_results.append(enrichment_results)
-    return allenrichment_results
+
+    if filt != 'No_file':
+        gos_sel = pd.read_excel('../data/'+filt,header=None,names=['TERM'])['TERM'].tolist()
+        return allenrichment_results[allenrichment_results['TERM'].isin(gos_sel)]
+    else:
+        return allenrichment_results
+
 
 def plot_heatmap(allenrichment_results,clusters,cluster_genes,Pvalue_thr):
     #Heatmap plotting
