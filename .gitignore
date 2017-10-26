@@ -1,4 +1,6 @@
 codes/__pycache__
 codes/.ipynb_checkpoints
 results/*
-data/*.xlsx
+data/.~lock*
+data/.DS_Store
+.DS_Store

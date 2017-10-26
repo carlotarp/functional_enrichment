@@ -9,6 +9,9 @@ import ipywidgets as widgets
 from ipywidgets import Layout
 import os
 from scipy.stats import fisher_exact
+
+
+#GENERATE HTML PARAMETERS: first cell
 def dropdown():
     print('Select the database to perform the functional enrichment:')
     wd = widgets.Dropdown(
@@ -38,7 +41,7 @@ def dropdown_gene_set(allenrichment_results):
 def filename_groups():
     d = {fnam:fnam for fnam in os.listdir('../data/') if os.path.isfile('../data/'+fnam) and fnam.startswith('.')==False}
     d['No_file'] = 'No_file'
-    print('Select the groups file')
+    print('Select the groups file (it needs to be in data/ folder!)')
     wd = widgets.Dropdown(
         options = d,
         value = 'No_file',
@@ -50,7 +53,7 @@ def filename_groups():
 def filename_GO():
     d = {fnam:fnam for fnam in os.listdir('../data/') if os.path.isfile('../data/'+fnam) and fnam.startswith('.')==False}
     d['No_file'] = 'No_file'
-    print('OPTIONAL - Select a file with list of gene sets to enrich (filter):')
+    print('OPTIONAL - Select a file with list of gene sets to enrich (filter) (it needs to be in data/ folder!):')
     wd = widgets.Dropdown(
         options = d,
         value = 'No_file',
@@ -85,7 +88,8 @@ def pval_thres():
         disabled=False
     )
     return pv
-        
+################################################################################
+
 def load_data(filename,db_name):
     #Load cluster data
     clusters = pd.read_excel('../data/'+filename)
@@ -105,7 +109,6 @@ def load_data(filename,db_name):
     return allgenes,genesets,cluster_genes,clusters
 
 def functional_enrichment(term_genes, N, k_l, alpha, xmin):
-    functional_data = pd.DataFrame()
     k = len(k_l)
     term_data = []
     for term in term_genes.keys():
@@ -119,15 +122,12 @@ def functional_enrichment(term_genes, N, k_l, alpha, xmin):
             term_data.append({'TERM': term, 'PVALUE': pvalf,'ENRICHED_GENES':','.join(xl),'TERM_GENE_SET_SIZE':m})
 
     term_data_df = pd.DataFrame(term_data)
-
     if len(term_data_df) > 0:
         corrected_p = multipletests(term_data_df.PVALUE.tolist(), method='fdr_bh', is_sorted=False, returnsorted=False)
         term_data_df['QVALUE'] = list(corrected_p[1])
-        functional_data = functional_data.append(term_data_df)
-
-        return functional_data[functional_data['QVALUE'] < alpha]
+        return term_data_df[term_data_df['QVALUE'] < alpha]
     else:
-        return ''
+        return pd.DataFrame()
         
 def generate_gitools_matrix(cluster_genes,fnam):
     allclustergenes = []
