@@ -41,7 +41,7 @@ def dropdown_gene_set(allenrichment_results):
 def filename_groups():
     d = {fnam:fnam for fnam in os.listdir('../data/') if os.path.isfile('../data/'+fnam) and fnam.startswith('.')==False}
     d['No_file'] = 'No_file'
-    print('Select the groups file (it needs to be in data/ folder!)')
+    print('Select the groups file')
     wd = widgets.Dropdown(
         options = d,
         value = 'No_file',
@@ -53,7 +53,7 @@ def filename_groups():
 def filename_GO():
     d = {fnam:fnam for fnam in os.listdir('../data/') if os.path.isfile('../data/'+fnam) and fnam.startswith('.')==False}
     d['No_file'] = 'No_file'
-    print('OPTIONAL - Select a file with list of gene sets to enrich (filter) (it needs to be in data/ folder!):')
+    print('OPTIONAL - Select a file with list of gene sets to enrich (filter):')
     wd = widgets.Dropdown(
         options = d,
         value = 'No_file',
