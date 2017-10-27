@@ -9,7 +9,9 @@ import ipywidgets as widgets
 from ipywidgets import Layout
 import os
 from scipy.stats import fisher_exact
-
+import gseapy as gp
+from scipy.stats import rankdata
+from itertools import combinations
 
 #GENERATE HTML PARAMETERS: first cell
 def dropdown():
@@ -90,6 +92,7 @@ def pval_thres():
     return pv
 ################################################################################
 
+####################### Functional enrichment functions ################################
 def load_data(filename,db_name):
     #Load cluster data
     clusters = pd.read_excel('../data/'+filename)
@@ -164,6 +167,30 @@ def enrichment_all_groups(genesets,xmin,filt,allgenes,cluster_genes,Pvalue_thr):
     else:
         return allenrichment_results
 
+def genes_enriched_per_group(allenrichment_results,out_ex):	
+    try:
+        os.stat('../results/'+out_ex)
+        os.rmdir('../results/'+out_ex)
+        os.mkdir('../results/'+out_ex)
+    except:
+        os.mkdir('../results/'+out_ex) 
+
+    for term,termdf in allenrichment_results.groupby('TERM'):
+        allgenes = list(set([gg for g in termdf.ENRICHED_GENES.tolist() for gg in g.split(',')]))
+        genes_l = []
+        for gene in allgenes:
+            d = {} 
+            for cluster, clusterdf in termdf.groupby('GROUP'):
+                if gene in clusterdf.ENRICHED_GENES.tolist()[0].split(','):
+                    val = 1
+                else:
+                    val = 0
+                d[cluster] = val
+            d['GENE'] = gene
+            genes_l.append(d)
+        term_genes = pd.DataFrame(genes_l)
+        term_genes.to_excel('../results/'+out_ex+'/'+term+'.xls',index=False)
+    return
 
 def plot_heatmap(allenrichment_results,clusters,cluster_genes,Pvalue_thr):
     #Heatmap plotting
@@ -196,3 +223,67 @@ def plot_heatmap(allenrichment_results,clusters,cluster_genes,Pvalue_thr):
     plt.show()
     
     return
+##################################################################################################################
+
+####################################### GSEA functions ###########################################################
+def compute_median(row):
+    row['rest'] = np.median([row[e] for e in row])
+    return row
+
+#Paired combinations
+def paired_combinations(exp,db_name,analysis_name,permutations_number,output_plots):
+    combi_cols = combinations([column for column in exp.columns.tolist() if column!='GENE'],2)
+    for pair in combi_cols:
+        print('---> working on combination:',' vs '.join(pair))
+        exp_c = exp[['GENE',pair[0],pair[1]]].copy(deep=True)
+        exp_c[pair[0]+'_log2'] = exp_c[pair[0]].apply(lambda x:compute_log2(x))
+        exp_c[pair[1]+'_log2'] = exp_c[pair[1]].apply(lambda x:compute_log2(x))
+        print('\t',len(exp_c[(exp_c[pair[0]+'_log2']==-666)|(exp_c[pair[1]+'_log2']==-666)]),' genes discarded for having null (0 or <0) values in one or both conditions')
+        exp_c = exp_c[(exp_c[pair[0]+'_log2']!=-666)&(exp_c[pair[1]+'_log2']!=-666)]
+        exp_c['FC'] = exp_c[pair[0]+'_log2'] - exp_c[pair[1]+'_log2']
+        exp_c['RANK'] = rankdata(exp_c['FC'].tolist())
+        print('\trunning GSEA for',pair,' this might take hours')
+        run_GSEA_function(exp_c[['GENE','RANK']],db_name,analysis_name+'_'+pair[0]+'_vs_'+pair[1],permutations_number,output_plots) #run GSEA
+    return
+
+#One againts all the others
+def one_againts_all_combinations(exp,db_name,analysis_name,permutations_number,output_plots):
+    for c in exp.columns.tolist():
+        if c!= 'GENE':
+            print('---> working on combination:',c,'vs the rest')
+            exp = exp.dropna()
+            exp_c = exp[['GENE',c]].copy(deep=True)
+            medians = [np.median([row[c2] for c2 in exp.columns.tolist() if c2 not in [c,'GENE']]) for row in exp[[c2 for c2 in exp.columns.tolist() if c2 not in [c,'GENE']]].to_dict(orient='records')]
+            exp_c['rest'] = medians
+            exp_c[c+'_log2'] = exp_c[c].apply(lambda x:compute_log2(x))
+            exp_c['rest_log2'] = exp_c['rest'].apply(lambda x:compute_log2(x))
+            print('\t',len(exp_c[(exp_c[c+'_log2']==-666)|(exp_c['rest_log2']==-666)]),' genes discarded for having null (0 or <0) values in one or both conditions')
+            exp_c = exp_c[(exp_c[c+'_log2']!=-666)&(exp_c['rest_log2']!=-666)]
+            exp_c['FC'] = exp_c[c+'_log2'] - exp_c['rest_log2']
+            exp_c['RANK'] = rankdata(exp_c['FC'].tolist())
+            print('\trunning GSEA for',c,' vs the rest, this might take hours')
+            run_GSEA_function(exp_c[['GENE','RANK']],db_name,analysis_name+'_'+c+'_vs_the_rest',permutations_number,output_plots) #run GSEA
+    return
+
+#GSEA function
+def run_GSEA_function(genes_rankval,db_name,analysis_name,permutations_number,output_plots):
+    #Run GSEA
+    pre_res = gp.prerank(rnk=genes_rankval[['GENE','RANK']],
+                             gene_sets=db_name,
+                             outdir='../results/'+analysis_name,format='png',
+                             graph_num=output_plots,
+                             permutation_num=permutations_number,
+                             weighted_score_type=0)
+    results = pd.DataFrame(pre_res.res2d)
+    results = results.reset_index()
+    #Dump a summary of the results into an Excel file
+    results.to_excel('../results/'+analysis_name+'_GSEAresults_SUMMARY.xls',index=False)
+
+def compute_log2(x):
+    if x <= 0:
+        return -666
+    else:
+        return np.log2(float(x))
+
+
+
