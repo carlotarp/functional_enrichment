@@ -261,6 +261,7 @@ def one_againts_all_combinations(exp,db_name,analysis_name,permutations_number,o
             exp_c = exp_c[(exp_c[c+'_log2']!=-666)&(exp_c['rest_log2']!=-666)]
             exp_c['FC'] = exp_c[c+'_log2'] - exp_c['rest_log2']
             exp_c['RANK'] = rankdata(exp_c['FC'].tolist())
+            exp_c[['GENE',c,'rest',c+'_log2','rest_log2','FC']].to_excel('../results/'+'FCvalues_'+analysis_name+'_'+c+'_vs_the_rest.xls',index=False)
             print('\trunning GSEA for',c,' vs the rest, this might take hours')
             run_GSEA_function(exp_c[['GENE','RANK']],db_name,analysis_name+'_'+c+'_vs_the_rest',permutations_number,output_plots) #run GSEA
     return
