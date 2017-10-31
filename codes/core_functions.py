@@ -286,5 +286,28 @@ def compute_log2(x):
     else:
         return np.log2(float(x))
 
-
+#################################################
+#GSEA volcano plot
+def make_volcano(celltype_res,mark,qval_thr,term):
+    celltype_res_s = celltype_res[celltype_res['-log10(Q-value)']> np.log10(qval_thr)*-1]
+    celltype_res_ns = celltype_res[celltype_res['-log10(Q-value)']<=np.log10(qval_thr)*-1]
+    if len(celltype_res_s) > 0:
+        celltype_res_es = celltype_res_s[celltype_res_s['nes']> 0]
+        celltype_res_ds = celltype_res_s[celltype_res_s['nes']< 0]
+        if len(celltype_res_ds) > 0:
+            plt.scatter(celltype_res_ds['nes'].tolist(),celltype_res_ds['-log10(Q-value)'].tolist(),s=250,marker=mark,color='#4e7ab5',alpha=0.4)    
+        if len(celltype_res_es) > 0:        
+            plt.scatter(celltype_res_es['nes'].tolist(),celltype_res_es['-log10(Q-value)'].tolist(),s=250,marker=mark,color='#af494d',alpha=0.4) 
+    if len(celltype_res_ns) > 0:
+        plt.scatter(celltype_res_ns['nes'].tolist(),celltype_res_ns['-log10(Q-value)'].tolist(),s=250,marker=mark,color='grey',alpha=0.4)   
+    plt.xlabel('NES')
+    plt.ylabel('-log10(Q-value)')
+    plt.title(term)
+    plt.show()
+    return
+def apply_log10(v):
+    if v == 0:
+        return 24
+    else:
+        return -1*(np.log10(v))
 
