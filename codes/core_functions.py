@@ -288,7 +288,7 @@ def compute_log2(x):
 
 #################################################
 #GSEA volcano plot
-def make_volcano(celltype_res,mark,qval_thr,term):
+def make_volcano(celltype_res,mark,qval_thr,term,savename):
     celltype_res_s = celltype_res[celltype_res['-log10(Q-value)']> np.log10(qval_thr)*-1]
     celltype_res_ns = celltype_res[celltype_res['-log10(Q-value)']<=np.log10(qval_thr)*-1]
     if len(celltype_res_s) > 0:
@@ -303,6 +303,7 @@ def make_volcano(celltype_res,mark,qval_thr,term):
     plt.xlabel('NES')
     plt.ylabel('-log10(Q-value)')
     plt.title(term)
+    plt.savefig('../results/'+savename+'.svg')
     plt.show()
     return
 def apply_log10(v):
